@@ -1,0 +1,56 @@
+name: Migrate one annual Release ZIP to Hugging Face
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_zip_url:
+        description: "Direct GitHub Release ZIP download URL"
+        required: true
+        type: string
+      symbol:
+        description: "Technical symbol, e.g. JPMUSUSD"
+        required: true
+        default: "JPMUSUSD"
+        type: string
+      digits:
+        description: "Digits written to index.txt"
+        required: true
+        default: "3"
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  HF_DATASET: ${{ vars.HF_DATASET || 'Esmaeil9ss/Tickdata' }}
+
+jobs:
+  migrate-release-zip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests "huggingface_hub>=0.24"
+
+      - name: Download, split, and upload
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_ZIP_URL: ${{ inputs.release_zip_url }}
+          SYMBOL: ${{ inputs.symbol }}
+          DIGITS: ${{ inputs.digits }}
+        run: |
+          set -euo pipefail
+          python tools/migrate_release_url.py \
+            --release-zip-url "$RELEASE_ZIP_URL" \
+            --symbol "$SYMBOL" \
+            --digits "$DIGITS" \
+            --repo-id "$HF_DATASET"
