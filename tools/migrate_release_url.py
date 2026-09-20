@@ -58,18 +58,25 @@ def retry(label, fn, attempts=5):
 
 def validate_release_asset_url(url: str) -> str:
     parsed = urlparse(url)
+
     if parsed.scheme != "https":
-        raise ValueError("release URL must use https")
-    if parsed.hostname not in {"github.com", "www.github.com"}:
-        raise ValueError("use the direct github.com Release asset URL")
-    if "/releases/download/" not in parsed.path:
+        raise ValueError("download URL must use https")
+
+    allowed_hosts = {
+        "github.com",
+        "www.github.com",
+        "raw.githubusercontent.com",
+    }
+
+    if parsed.hostname not in allowed_hosts:
         raise ValueError(
-            "this is not a direct Release asset URL; copy the ZIP download link "
-            "containing /releases/download/"
+            "URL must be a GitHub Release asset or a raw file from a Git tag"
         )
+
     filename = Path(unquote(parsed.path)).name
     if not filename.lower().endswith(".zip"):
-        raise ValueError("the Release asset URL must point to a .zip file")
+        raise ValueError("download URL must point to a .zip file")
+
     return filename
 
 
